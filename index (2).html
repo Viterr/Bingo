@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bingo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF1F6;--surf:#fff;--ink:#17203A;--mut:#5B6580;--line:#D5DBE8;--pri:#2B4BD8;--onpri:#fff;--win:#F2B705;--winink:#2A2000;--danger:#C73A3A;--mark:#17203A;--markink:#fff;
+--B:#2B6FE0;--I:#D9463B;--N:#7A5CC8;--G:#1F9D6B;--O:#E59A0B;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10162A;--surf:#1A2240;--ink:#EAEEFB;--mut:#9AA5C7;--line:#2C3760;--pri:#6F8BFF;--onpri:#0B1230;--danger:#FF7A7A;--mark:#EAEEFB;--markink:#10162A;color-scheme:dark}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 Rubik,system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:16px}
+h1{font:400 30px Bowlby One,Rubik,sans-serif;margin:0 0 12px;letter-spacing:.5px}
+h2{font:700 17px Rubik,sans-serif;margin:0 0 8px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--surf);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--pri)}
+button.p{background:var(--pri);color:var(--onpri);border-color:var(--pri);font-weight:500}
+button.d{color:var(--danger)}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+input,select,textarea{background:var(--surf);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.panel{background:var(--surf);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.chip{border-radius:20px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tabs{display:flex;gap:4px;margin:0 0 14px;border-bottom:2px solid var(--line)}
+.tabs button{border:0;border-radius:8px 8px 0 0;background:none;padding:9px 16px;font-weight:500;color:var(--mut)}
+.tabs button.on{color:var(--ink);box-shadow:inset 0 -3px var(--pri)}
+.muted{color:var(--mut)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.card{background:var(--surf);border:2px solid var(--line);border-radius:12px;padding:10px}
+.card.win{border-color:var(--win);box-shadow:0 0 0 3px var(--win)}
+.card .top{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px}
+.card .top b{font-family:Bowlby One,Rubik,sans-serif;font-weight:400}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;text-align:center}
+.grid5 span{padding:6px 0;border-radius:6px;background:var(--bg);font-weight:500}
+.grid5 .h{color:#fff;font:400 15px Bowlby One,Rubik,sans-serif}
+.h.B{background:var(--B)}.h.I{background:var(--I)}.h.N{background:var(--N)}.h.G{background:var(--G)}.h.O{background:var(--O)}
+.grid5 .m{background:var(--mark);color:var(--markink)}
+.grid5 .f{background:var(--win);color:var(--winink);font-size:11px;padding:9px 0}
+.ball{width:120px;height:120px;border-radius:50%;display:grid;place-content:center;text-align:center;color:#fff;font-family:Bowlby One,Rubik,sans-serif;background:var(--mut);flex:none}
+.ball small{font-size:20px;line-height:1}.ball strong{font-size:48px;font-weight:400;line-height:1}
+.ball.B{background:var(--B)}.ball.I{background:var(--I)}.ball.N{background:var(--N)}.ball.G{background:var(--G)}.ball.O{background:var(--O)}
+.board{display:grid;grid-template-columns:28px repeat(15,1fr);gap:3px;font-size:12px;text-align:center;min-width:560px}
+.board span{padding:3px 0;border-radius:4px;background:var(--bg);color:var(--mut)}
+.board .l{color:#fff;font-family:Bowlby One,Rubik,sans-serif}
+.board .on{background:var(--mark);color:var(--markink);font-weight:700}
+.scroll{overflow-x:auto}
+.banner{background:var(--win);color:var(--winink);border-radius:10px;padding:12px 14px;font-weight:700;margin-bottom:14px}
+.hist{display:flex;flex-wrap:wrap;gap:5px}
+.hist span{padding:2px 8px;border-radius:14px;background:var(--bg);font-size:13px}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;place-items:center;padding:16px;z-index:20}
+#modal .box{background:var(--surf);border-radius:12px;padding:16px;width:min(640px,100%);max-height:90%;overflow:auto}
+#modal textarea{width:100%;height:240px;font:12px/1.4 monospace}
+.stage{--B:#e53935;--I:#fb8c00;--N:#43a047;--G:#1e88e5;--O:#8e24aa;position:relative;overflow:hidden;border-radius:18px;padding:14px;color:#6b3a14;background:linear-gradient(#f6a65a 0%,#f08fa0 40%,#9ccf74 74%)}
+.stage:after{content:"";position:absolute;left:0;right:0;bottom:0;height:20%;background:repeating-linear-gradient(90deg,#c98b4a 0 64px,#a8692f 64px 66px);z-index:0}
+.stage>*{position:relative;z-index:1}
+.ban{margin:0 auto 14px;max-width:460px;text-align:center;color:#fff;background:linear-gradient(#3f8f46,#2c6e35);border:4px solid #8a5a2b;border-radius:14px;padding:6px 14px}
+.ban small{display:block;font-size:13px}.ban b{font:400 21px Bowlby One,Rubik,sans-serif}
+.stage .banner{border:3px solid #8a5a2b}.stage .banner button{margin:2px}
+.sg{display:grid;grid-template-columns:minmax(170px,230px) minmax(250px,1fr) 108px;gap:14px;align-items:start}
+.mach{text-align:center}
+.globe{position:relative;width:190px;height:190px;margin:0 auto;border-radius:50%;overflow:hidden;border:5px solid #ffffffcc;background:radial-gradient(circle at 32% 28%,#fffc,#cfe8ff66 55%,#9bbbe066)}
+.globe i{position:absolute;width:34px;height:34px;border-radius:50%;box-shadow:inset -5px -5px 0 #0003,inset 4px 4px 0 #fff6}
+.globe.s i{animation:jig .55s}
+@keyframes jig{25%{transform:translate(8px,-14px)}60%{transform:translate(-8px,-6px)}}
+@media (prefers-reduced-motion:reduce){.globe.s i{animation:none}}
+.out.ball{position:absolute;width:72px;height:72px;left:50%;bottom:6px;margin-left:-36px;border:3px solid #fff}
+.out small{font-size:13px}.out strong{font-size:28px}
+.base{width:210px;max-width:100%;margin:-12px auto 0;padding:14px 10px 12px;border-radius:0 0 40px 40px;background:linear-gradient(#a540c8,#7b27a0)}
+.calls{background:#5b1a78;color:#fff;border-radius:10px;padding:4px 8px;font-weight:700;font-size:14px}
+.play{display:block;width:100%;margin-top:10px;padding:8px;border:3px solid #cfe9ff;border-radius:30px;color:#fff;background:linear-gradient(#5bd06a,#25963a);font:400 22px Bowlby One,Rubik,sans-serif;text-shadow:0 2px 0 #0004}
+.play:disabled{filter:grayscale(.8)}
+.rs{margin-top:8px;font-size:13px;padding:3px 10px;background:#fff8;border-color:#fff;color:#3b2410}
+.gcard{background:#fbf1d3;border:4px solid #8a5a2b;border-radius:14px;padding:8px}
+.gcard.win{box-shadow:0 0 0 4px #ffd54a,0 0 26px 8px #ffd54a}
+.gl,.gg{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.gl b{color:#fff;text-align:center;border-radius:8px 8px 4px 4px;padding:3px 0;font:400 clamp(18px,5vw,28px) Bowlby One,Rubik,sans-serif}
+.gg span{margin-top:5px;aspect-ratio:1/.95;display:grid;place-items:center;border-radius:6px;background:#fff6dc;color:#6b3a14;font:700 clamp(18px,4.6vw,30px) Rubik,sans-serif}
+.gg .dab{background:radial-gradient(circle,#c0551a 0 56%,#fff6dc 60%);color:#fff}
+.gg .st{color:#e53935;font-size:clamp(22px,6vw,36px)}
+.pg{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:10px}
+.pg span{background:linear-gradient(#3f8f46,#2c6e35);color:#fff;border:3px solid #8a5a2b;border-radius:20px;padding:3px 14px;font-weight:700;font-size:14px}
+.pg button{color:#3b2410}
+.cb{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:4px;text-align:center;font-size:11px;background:#2f7d3a;border:3px solid #8a5a2b;border-radius:10px}
+.cb b{color:#fff;border-radius:4px;font:400 12px Bowlby One,Rubik,sans-serif}
+.cb span{padding:2px 0;border-radius:3px;background:#fff6dc;color:#6b3a14;font-weight:700}
+.cb .on{background:#c0551a;color:#fff}
+@media (max-width:760px){.sg{grid-template-columns:1fr 96px}.mach{grid-column:1/-1}}
+</style></head>
+<body><main>
+<h1>Bingo</h1>
+<div id="app"></div>
+</main>
+<div id="modal"><div class="box" id="mbox"></div></div>
+<script>
+const KEY='bingo:v1', LET='BINGO';
+let S={games:[],cur:null,tab:'cards'};
+function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(d&&Array.isArray(d.games))S=Object.assign(S,d)}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({games:S.games,cur:S.cur,tab:S.tab}))}catch(e){}}
+const uid=()=>'g_'+Math.random().toString(36).slice(2,9);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const G=()=>S.games.find(g=>g.id===S.cur);
+const letter=n=>LET[Math.min(4,Math.floor((n-1)/15))];
+const WIN={line:'Línea (fila, columna o diagonal)',full:'Cartón lleno'};
+
+/* ---------- cartones ---------- */
+function pick(lo,k){const a=[];for(let i=lo;i<lo+15;i++)a.push(i);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,k)}
+const ckey=c=>c.map(col=>col.filter(Boolean).slice().sort((a,b)=>a-b).join(',')).join('|');
+function newCard(g,owner){
+  const used=new Set(g.cards.map(c=>ckey(c.cols)));
+  for(let t=0;t<2000;t++){
+    const cols=[0,1,2,3,4].map(i=>{const p=pick(i*15+1,i==2?4:5);if(i==2)p.splice(2,0,0);return p});
+    if(!used.has(ckey(cols))){const c={id:'C'+String(g.next++).padStart(3,'0'),owner:owner||'',cols};g.cards.push(c);return c}
+  }
+}
+function isWin(g,c){
+  const d=new Set(g.drawn),m=(i,j)=>c.cols[i][j]===0||d.has(c.cols[i][j]);
+  if(g.win==='full')return c.cols.every((_,i)=>[0,1,2,3,4].every(j=>m(i,j)));
+  for(let k=0;k<5;k++){
+    if([0,1,2,3,4].every(j=>m(k,j)))return true;
+    if([0,1,2,3,4].every(i=>m(i,k)))return true;
+  }
+  return [0,1,2,3,4].every(i=>m(i,i))||[0,1,2,3,4].every(i=>m(i,4-i));
+}
+function cardHtml(g,c,showMarks){
+  const d=new Set(g.drawn);
+  let h='<div class="grid5">'+[...LET].map(l=>`<span class="h ${l}">${l}</span>`).join('');
+  for(let j=0;j<5;j++)for(let i=0;i<5;i++){const n=c.cols[i][j];
+    h+=n===0?'<span class="f">LIBRE</span>':`<span class="${showMarks&&d.has(n)?'m':''}">${n}</span>`}
+  return h+'</div>';
+}
+
+/* ---------- acciones ---------- */
+function newGame(){
+  const name=document.getElementById('gname').value.trim()||('Juego '+(S.games.length+1));
+  const g={id:uid(),name,win:document.getElementById('gwin').value,single:document.getElementById('gsingle').checked,cards:[],next:1,drawn:[],winners:[],created:Date.now()};
+  S.games.push(g);S.cur=g.id;S.tab='cards';save();render();
+}
+function delGame(){const g=G();if(g)ask('¿Eliminar “'+g.name+'” y todos sus cartones?',()=>{S.games=S.games.filter(x=>x!==g);S.cur=S.games[0]?.id||null;save();render()},'Eliminar')}
+function selGame(id){S.cur=id;save();render()}
+function setTab(t){S.tab=t;save();render()}
+function setWin(v){const g=G();if(g&&!g.drawn.length){g.win=v;save()}}
+function setSingle(v){const g=G();if(g&&!g.drawn.length){g.single=v;save()}}
+function genCards(){const g=G(),n=Math.max(1,Math.min(200,+document.getElementById('ncards').value||1));for(let i=0;i<n;i++)newCard(g);save();render()}
+function addCard(){newCard(G(),document.getElementById('nowner').value.trim());save();render()}
+function setOwner(id,v){const c=G().cards.find(c=>c.id===id);c.owner=v.trim();save()}
+function delCard(id){const g=G();ask('¿Eliminar el cartón '+id+'?',()=>{g.cards=g.cards.filter(c=>c.id!==id);g.winners=g.winners.filter(w=>w.card!==id);save();render()},'Eliminar')}
+function over(g){return g.drawn.length>=75||(g.single&&g.winners.length>0)}
+function draw(){
+  const g=G();if(over(g))return;
+  const left=[];for(let i=1;i<=75;i++)if(!g.drawn.includes(i))left.push(i);
+  let n=left[Math.floor(Math.random()*left.length)];
+  if(g.single){
+    /* cuántos cartones ganarían si saliera el número x */
+    const wins=x=>{g.drawn.push(x);const k=g.cards.filter(c=>isWin(g,c)).length;g.drawn.pop();return k};
+    if(wins(n)>1){
+      const safe=left.filter(x=>wins(x)<=1);
+      if(safe.length)n=safe[Math.floor(Math.random()*safe.length)];else g.tie=true;
+    }
+  }
+  g.drawn.push(n);
+  const had=new Set(g.winners.map(w=>w.card));
+  g.cards.forEach(c=>{if(!had.has(c.id)&&isWin(g,c))g.winners.push({card:c.id,at:g.drawn.length})});
+  S.shake=1;if(g.winners.length>had.size)S.ci=0;
+  save();render();
+}
+function resetGame(){const g=G();ask('¿Reiniciar los sorteos de “'+g.name+'”? Los cartones se conservan.',()=>{g.drawn=[];g.winners=[];g.tie=false;save();render()},'Reiniciar')}
+
+/* ---------- exportar / importar ---------- */
+function modal(h){document.getElementById('mbox').innerHTML=h;document.getElementById('modal').style.display='grid'}
+let _ok=null;
+function ask(msg,fn,label){_ok=fn;modal('<h2>'+esc(msg)+'</h2><div class="row" style="margin-top:12px"><button class="p" onclick="closeModal();_ok&&_ok()">'+(label||'Aceptar')+'</button><button onclick="closeModal()">Cancelar</button></div>')}
+function closeModal(){document.getElementById('modal').style.display='none'}
+function showExport(all){
+  const games=all?S.games:[G()];
+  const json=JSON.stringify({app:'bingo',version:1,games},null,1);
+  modal(`<h2>Exportar ${all?'todas las partidas':'“'+esc(G().name)+'”'}</h2>
+  <p class="muted">Copia el texto o descárgalo como archivo .json para importarlo luego.</p>
+  <textarea id="exp" readonly>${esc(json)}</textarea>
+  <div class="row" style="margin-top:10px"><button class="p" onclick="copyExp()">Copiar JSON</button><button onclick="dlExp()">Descargar archivo</button><button onclick="closeModal()">Cerrar</button></div><p id="msg" class="muted"></p>`);
+}
+function copyExp(){const t=document.getElementById('exp');t.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}
+  document.getElementById('msg').textContent=ok?'Copiado.':'No se pudo copiar automáticamente; selecciona el texto y cópialo.'}
+function dlExp(){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([document.getElementById('exp').value],{type:'application/json'}));a.download='bingo.json';a.click()}catch(e){}
+  document.getElementById('msg').textContent='Si la descarga no empieza, usa “Copiar JSON”.'}
+function showImport(){
+  modal(`<h2>Importar partidas</h2><p class="muted">Pega el JSON o elige un archivo .json exportado desde esta app.</p>
+  <textarea id="imp" placeholder="{ &quot;app&quot;: &quot;bingo&quot;, … }"></textarea>
+  <div class="row" style="margin-top:10px"><input type="file" accept=".json,application/json" onchange="readFile(this)"><button class="p" onclick="doImport()">Importar</button><button onclick="closeModal()">Cancelar</button></div><p id="msg" class="muted"></p>`);
+}
+function readFile(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{document.getElementById('imp').value=r.result};r.readAsText(f)}
+function doImport(){
+  const msg=document.getElementById('msg');
+  try{
+    const d=JSON.parse(document.getElementById('imp').value);
+    const list=Array.isArray(d.games)?d.games:(d.cards?[d]:null);
+    if(!list)throw 0;
+    let n=0;
+    list.forEach(g=>{
+      if(!g||!Array.isArray(g.cards)||!Array.isArray(g.drawn))return;
+      if(S.games.some(x=>x.id===g.id))g.id=uid();
+      g.name=String(g.name||'Juego importado');g.win=g.win==='full'?'full':'line';
+      g.next=g.next||g.cards.length+1;g.winners=g.winners||[];
+      S.games.push(g);S.cur=g.id;n++;
+    });
+    if(!n)throw 0;
+    save();closeModal();render();
+  }catch(e){msg.textContent='El JSON no es válido. Revisa que provenga de la exportación de esta app.'}
+}
+
+/* ---------- vistas ---------- */
+function render(){
+  const g=G();
+  let h=`<div class="panel"><div class="row">`+
+    S.games.map(x=>`<button class="chip ${x.id===S.cur?'on':''}" onclick="selGame('${x.id}')">${esc(x.name)}</button>`).join('')+
+    `</div>${S.games.length?'':'<p class="muted">Todavía no hay partidas. Crea la primera abajo.</p>'}
+    <div class="row" style="margin-top:12px">
+      <input id="gname" placeholder="Juego ${S.games.length+1}" aria-label="Nombre de la partida">
+      <select id="gwin" aria-label="Condición de victoria"><option value="line">${WIN.line}</option><option value="full">${WIN.full}</option></select>
+      <label class="muted"><input type="checkbox" id="gsingle" checked> Un solo ganador</label>
+      <button class="p" onclick="newGame()">Crear partida</button>
+      <button onclick="showImport()">Importar JSON</button>
+      ${S.games.length?'<button onclick="showExport(true)">Exportar todas</button>':''}
+    </div></div>`;
+  if(g){
+    h+=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><div><h2 style="margin:0">${esc(g.name)}</h2>
+      <span class="muted">ID ${g.id} · ${g.cards.length} cartones · ${g.drawn.length} números sorteados</span></div>
+      <div class="row"><label class="muted">Gana:
+      <select onchange="setWin(this.value)" ${g.drawn.length?'disabled title="No se puede cambiar con la partida iniciada"':''}>
+      <option value="line" ${g.win==='line'?'selected':''}>${WIN.line}</option><option value="full" ${g.win==='full'?'selected':''}>${WIN.full}</option></select></label>
+      <label class="muted"><input type="checkbox" ${g.single?'checked':''} ${g.drawn.length?'disabled':''} onchange="setSingle(this.checked)"> Un solo ganador</label>
+      <button onclick="showExport(false)">Exportar</button><button class="d" onclick="delGame()">Eliminar</button></div></div>
+      <div class="tabs"><button class="${S.tab==='cards'?'on':''}" onclick="setTab('cards')">Cartones</button>
+      <button class="${S.tab==='play'?'on':''}" onclick="setTab('play')">Jugar</button></div>`;
+    h+=S.tab==='cards'?cardsView(g):playView(g);
+  }
+  document.getElementById('app').innerHTML=h;
+}
+function cardsView(g){
+  let h=`<div class="panel"><div class="row">
+    <input id="ncards" type="number" min="1" max="200" value="10" style="width:80px" aria-label="Cantidad">
+    <button class="p" onclick="genCards()">Generar cartones</button>
+    <span class="muted">o</span>
+    <input id="nowner" placeholder="Propietario (opcional)"><button onclick="addCard()">Agregar un cartón</button></div></div>`;
+  if(!g.cards.length)return h+'<p class="muted">Esta partida no tiene cartones. Genera algunos para empezar.</p>';
+  return h+'<div class="cards">'+g.cards.map(c=>`<div class="card"><div class="top"><b>${c.id}</b>
+    <button class="d" onclick="delCard('${c.id}')" aria-label="Eliminar cartón ${c.id}">Eliminar</button></div>
+    <input style="width:100%;margin-bottom:8px" value="${esc(c.owner)}" placeholder="Sin propietario" aria-label="Propietario del cartón ${c.id}" onchange="setOwner('${c.id}',this.value)">
+    ${cardHtml(g,c,false)}</div>`).join('')+'</div>';
+}
+function sortedCards(g){const ids=new Set(g.winners.map(w=>w.card));return [...g.cards].sort((a,b)=>ids.has(b.id)-ids.has(a.id))}
+function cardNav(d){const n=G().cards.length;if(n){S.ci=((S.ci||0)+d+n)%n;render()}}
+function goCard(id){S.ci=Math.max(0,sortedCards(G()).findIndex(c=>c.id===id));render()}
+function playViewGame(g){
+  const last=g.drawn[g.drawn.length-1],d=new Set(g.drawn),fin=over(g),ids=new Set(g.winners.map(w=>w.card)),cards=sortedCards(g);
+  S.ci=Math.max(0,Math.min(S.ci||0,cards.length-1));
+  const c=cards[S.ci],col=['#e53935','#1e88e5','#fbc02d','#43a047','#8e24aa','#fb8c00'],shake=S.shake;S.shake=0;
+  const globe=[...Array(14)].map((_,i)=>'<i style="left:'+(6+(i*37)%66)+'%;bottom:'+(4+(i*23)%46)+'%;background:'+col[i%6]+'"></i>').join('');
+  const wl=g.winners.map(w=>{const k=g.cards.find(x=>x.id===w.card);return k?'<button onclick="goCard(\''+k.id+'\')">'+k.id+(k.owner?' · '+esc(k.owner):'')+' (sorteo '+w.at+')</button>':''}).join(' ');
+  let cell='';
+  if(c)for(let j=0;j<5;j++)for(let i=0;i<5;i++){const n=c.cols[i][j];cell+=n===0?'<span class="st">★</span>':'<span class="'+(d.has(n)?'dab':'')+'">'+n+'</span>'}
+  const hd=[...LET].map(l=>'<b style="background:var(--'+l+')">'+l+'</b>').join('');
+  let cb=hd;
+  for(let k=0;k<15;k++)for(let r=0;r<5;r++){const n=r*15+k+1;cb+='<span class="'+(d.has(n)?'on':'')+'">'+n+'</span>'}
+  return '<div class="stage"><div class="ban"><small>Gana con</small><b>'+WIN[g.win]+'</b></div>'+
+   (wl?'<div class="banner">¡Ganador! '+wl+(g.tie?' No se pudo evitar el empate.':'')+'</div>':'')+
+   '<div class="sg"><div class="mach"><div class="globe '+(shake?'s':'')+'">'+globe+(last?'<div class="out ball '+letter(last)+'"><small>'+letter(last)+'</small><strong>'+last+'</strong></div>':'')+'</div>'+
+   '<div class="base"><div class="calls">Bolas sorteadas: '+g.drawn.length+'</div><button class="play" onclick="draw()" '+(fin?'disabled':'')+'>'+(fin?'Terminada':'Sortear')+'</button>'+
+   (g.drawn.length?'<button class="rs" onclick="resetGame()">Reiniciar sorteos</button>':'')+'</div></div>'+
+   '<div>'+(c?'<div class="gcard '+(ids.has(c.id)?'win':'')+'"><div class="gl">'+hd+'</div><div class="gg">'+cell+'</div></div>'+
+   '<div class="pg"><button onclick="cardNav(-1)" aria-label="Cartón anterior">◀</button><span>Cartón '+(S.ci+1)+'/'+cards.length+' · '+c.id+(c.owner?' · '+esc(c.owner):'')+'</span><button onclick="cardNav(1)" aria-label="Cartón siguiente">▶</button></div>':'<div class="gcard"><p style="padding:20px;text-align:center">Agrega cartones en la pestaña Cartones para jugar.</p></div>')+'</div>'+
+   '<div class="cb">'+cb+'</div></div></div>';
+}
+function playView(g){
+  const last=g.drawn[g.drawn.length-1],d=new Set(g.drawn);
+  let h=`<div class="panel"><div class="row" style="gap:18px">
+    <div class="ball ${last?letter(last):''}" aria-live="polite">${last?`<small>${letter(last)}</small><strong>${last}</strong>`:'<small>—</small>'}</div>
+    <div><div class="row"><button class="p" onclick="draw()" ${over(g)?'disabled':''}>${over(g)?'Partida terminada':'Sortear número'}</button>
+    <button class="d" onclick="resetGame()" ${g.drawn.length?'':'disabled'}>Reiniciar sorteos</button></div>
+    <p class="muted" style="margin:8px 0 0">${g.drawn.length?`Salieron ${g.drawn.length} de 75. Quedan ${75-g.drawn.length}.`:'Todavía no se sorteó ningún número.'}</p>
+    <p class="muted" style="margin:0">Condición: ${WIN[g.win]}.${g.single?' Se evita el empate y la partida termina con el primer ganador.':''}</p></div></div></div>`;
+  const wins=g.winners.map(w=>g.cards.find(c=>c.id===w.card)).filter(Boolean);
+  if(wins.length)h+=`<div class="banner">${wins.length===1?'Hay un cartón ganador':'Hay '+wins.length+' cartones ganadores'}: `+
+    g.winners.filter(w=>g.cards.some(c=>c.id===w.card)).map(w=>{const c=g.cards.find(c=>c.id===w.card);return `${c.id}${c.owner?' ('+esc(c.owner)+')':''} en el sorteo ${w.at}`}).join(', ')+'.'+(g.tie?' No se pudo evitar el empate: todos los números restantes completaban más de un cartón.':'')+'</div>';
+  h+='<div class="panel scroll"><div class="board">';
+  for(let r=0;r<5;r++){h+=`<span class="l" style="background:var(--${LET[r]})">${LET[r]}</span>`;for(let k=1;k<=15;k++){const n=r*15+k;h+=`<span class="${d.has(n)?'on':''}">${n}</span>`}}
+  h+='</div></div>';
+  if(g.drawn.length)h+='<div class="panel"><h2>Orden de salida</h2><div class="hist">'+g.drawn.map(n=>`<span>${letter(n)}${n}</span>`).join('')+'</div></div>';
+  if(!g.cards.length)return h+'<p class="muted">Agrega cartones en la pestaña Cartones para jugar.</p>';
+  const ids=new Set(g.winners.map(w=>w.card));
+  const sorted=[...g.cards].sort((a,b)=>ids.has(b.id)-ids.has(a.id));
+  return h+'<div class="cards">'+sorted.map(c=>`<div class="card ${ids.has(c.id)?'win':''}"><div class="top"><b>${c.id}</b>
+    <span class="muted">${esc(c.owner)||'Sin propietario'}</span></div>${ids.has(c.id)?'<div style="font-weight:700;margin-bottom:6px">¡Ganador!</div>':''}${cardHtml(g,c,true)}</div>`).join('')+'</div>';
+}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+load();if(!G())S.cur=S.games[0]?.id||null;render();
+</script></body></html>
