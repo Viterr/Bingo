@@ -215,22 +215,26 @@ async function dlPrev(){
   const c=_dl&&g.cards.find(x=>x.id===_dl),im=document.getElementById('dprev');
   if(c&&im){const cv=await drawCard(g,c);im.src=cv.toDataURL('image/jpeg',.9)}
 }
+async function saveBlob(name,blob){
+  let dl=null;try{dl=window.claude?await window.claude.use('downloads'):null}catch(e){}
+  if(dl)return dl.save({filename:name,data:blob});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
 const toBlob=cv=>new Promise(r=>cv.toBlob(r,'image/jpeg',.92));
 async function dlGo(){
   const g=G(),msg=document.getElementById('msg');
   g.when=document.getElementById('dwhen').value;save();
-  let dl=null;try{dl=window.claude?await window.claude.use('downloads'):null}catch(e){}
-  if(!dl){msg.textContent=_dl?'La descarga directa no está disponible aquí. Mantén presionada o haz clic derecho sobre la vista previa para guardar la imagen.':'La descarga directa no está disponible aquí.';return}
   try{
     if(_dl){
       const c=g.cards.find(x=>x.id===_dl);
-      await dl.save({filename:slug(g.name)+'-'+c.id+'.jpg',data:await toBlob(await drawCard(g,c))});
+      await saveBlob(slug(g.name)+'-'+c.id+'.jpg',await toBlob(await drawCard(g,c)));
     }else{
       if(typeof JSZip==='undefined'){msg.textContent='No se pudo cargar el componente ZIP. Descarga los cartones de a uno.';return}
       const Z=new JSZip();
       for(let k=0;k<g.cards.length;k++){const c=g.cards[k];msg.textContent='Generando '+(k+1)+' de '+g.cards.length+'…';
         Z.file(slug(g.name)+'-'+c.id+(c.owner?'-'+slug(c.owner):'')+'.jpg',await toBlob(await drawCard(g,c)))}
-      await dl.save({filename:slug(g.name)+'-cartones.zip',data:await Z.generateAsync({type:'blob'})});
+      await saveBlob(slug(g.name)+'-cartones.zip',await Z.generateAsync({type:'blob'}));
     }
     msg.textContent='Listo.';
   }catch(e){msg.textContent=e&&e.code==='declined'?'Descarga cancelada.':'No se pudo descargar: '+((e&&(e.message||e.code))||'error')}
