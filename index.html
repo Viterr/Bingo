@@ -95,6 +95,7 @@ input,select,textarea{background:var(--surf);border:1px solid var(--line);border
 <div id="app"></div>
 </main>
 <div id="modal"><div class="box" id="mbox"></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 const KEY='bingo:v1', LET='BINGO';
 let S={games:[],cur:null,tab:'cards'};
@@ -168,6 +169,72 @@ function draw(){
   save();render();
 }
 function resetGame(){const g=G();ask('¿Reiniciar los sorteos de “'+g.name+'”? Los cartones se conservan.',()=>{g.drawn=[];g.winners=[];g.tie=false;save();render()},'Reiniciar')}
+
+/* ---------- descarga JPG ---------- */
+const fmtWhen=w=>{const d=new Date(w);return isNaN(d)?'':d.toLocaleString('es',{dateStyle:'long',timeStyle:'short'})};
+const slug=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')||'bingo';
+function fit(x,t,f,s,mw,mn,wt){for(;s>mn;s-=2){x.font=(wt||400)+' '+s+'px '+f;if(x.measureText(t).width<=mw)return}x.font=(wt||400)+' '+s+'px '+f}
+function rr(x,a,b,w,h,r,fill){x.fillStyle=fill;x.beginPath();x.roundRect?x.roundRect(a,b,w,h,r):x.rect(a,b,w,h);x.fill()}
+async function drawCard(g,c){
+  try{await document.fonts.load('40px "Bowlby One"')}catch(e){}
+  const W=800,H=1120,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+  const F='"Bowlby One",Rubik,Arial,sans-serif',R='Rubik,Arial,sans-serif';
+  x.fillStyle='#fbf1d3';x.fillRect(0,0,W,H);
+  x.fillStyle='#2c6e35';x.fillRect(0,0,W,210);
+  x.textAlign='center';x.textBaseline='alphabetic';x.fillStyle='#fff';
+  fit(x,g.name,F,48,720,24);x.fillText(g.name,W/2,82);
+  fit(x,'Código del bingo: '+g.id,R,28,720,16,500);x.fillText('Código del bingo: '+g.id,W/2,130);
+  const wt=g.when?fmtWhen(g.when):'Fecha por definir';
+  fit(x,wt,R,28,720,16,500);x.fillText(wt,W/2,174);
+  const col=['#e53935','#fb8c00','#43a047','#1e88e5','#8e24aa'],cw=136,gap=10,x0=(W-(5*cw+4*gap))/2;
+  for(let i=0;i<5;i++){rr(x,x0+i*(cw+gap),245,cw,90,12,col[i]);x.fillStyle='#fff';x.font='400 56px '+F;x.fillText(LET[i],x0+i*(cw+gap)+cw/2,310)}
+  for(let j=0;j<5;j++)for(let i=0;i<5;i++){
+    const a=x0+i*(cw+gap),b=345+j*(120+gap),n=c.cols[i][j];
+    rr(x,a,b,cw,120,10,'#fff6dc');
+    if(n===0){x.fillStyle='#e53935';x.font='400 70px '+R;x.fillText('★',a+cw/2,b+84)}
+    else{x.fillStyle='#6b3a14';x.font='700 58px '+R;x.fillText(String(n),a+cw/2,b+80)}
+  }
+  x.fillStyle='#2c6e35';x.fillRect(0,1010,W,110);x.fillStyle='#fff';
+  fit(x,'Cartón '+c.id,F,38,720,20);x.fillText('Cartón '+c.id,W/2,1058);
+  const ow='Propietario: '+(c.owner||'sin asignar');fit(x,ow,R,30,720,16,500);x.fillText(ow,W/2,1098);
+  return cv;
+}
+let _dl=null;
+function dlModal(id){
+  const g=G();_dl=id;
+  modal('<h2>'+(id?'Descargar cartón '+id:'Descargar todos los cartones ('+g.cards.length+')')+' en JPG</h2>'+
+  '<p class="muted">Configura la fecha y hora del bingo. Se imprimirán en cada cartón junto con el nombre y el código del bingo.</p>'+
+  '<div class="row"><label class="muted">Fecha y hora<br><input type="datetime-local" id="dwhen" value="'+esc(g.when||'')+'" onchange="dlPrev()"></label></div>'+
+  '<p class="muted">Bingo: <b>'+esc(g.name)+'</b> · Código: <b>'+g.id+'</b></p>'+
+  (id?'<img id="dprev" style="max-width:100%;max-height:380px;border-radius:8px" alt="Vista previa del cartón">':'<p class="muted">Se descargará un archivo ZIP con un JPG por cartón.</p>')+
+  '<div class="row" style="margin-top:10px"><button class="p" onclick="dlGo()">'+(id?'Descargar JPG':'Descargar ZIP')+'</button><button onclick="closeModal()">Cancelar</button></div><p id="msg" class="muted"></p>');
+  dlPrev();
+}
+async function dlPrev(){
+  const g=G();g.when=document.getElementById('dwhen').value;save();
+  const c=_dl&&g.cards.find(x=>x.id===_dl),im=document.getElementById('dprev');
+  if(c&&im){const cv=await drawCard(g,c);im.src=cv.toDataURL('image/jpeg',.9)}
+}
+const toBlob=cv=>new Promise(r=>cv.toBlob(r,'image/jpeg',.92));
+async function dlGo(){
+  const g=G(),msg=document.getElementById('msg');
+  g.when=document.getElementById('dwhen').value;save();
+  let dl=null;try{dl=window.claude?await window.claude.use('downloads'):null}catch(e){}
+  if(!dl){msg.textContent=_dl?'La descarga directa no está disponible aquí. Mantén presionada o haz clic derecho sobre la vista previa para guardar la imagen.':'La descarga directa no está disponible aquí.';return}
+  try{
+    if(_dl){
+      const c=g.cards.find(x=>x.id===_dl);
+      await dl.save({filename:slug(g.name)+'-'+c.id+'.jpg',data:await toBlob(await drawCard(g,c))});
+    }else{
+      if(typeof JSZip==='undefined'){msg.textContent='No se pudo cargar el componente ZIP. Descarga los cartones de a uno.';return}
+      const Z=new JSZip();
+      for(let k=0;k<g.cards.length;k++){const c=g.cards[k];msg.textContent='Generando '+(k+1)+' de '+g.cards.length+'…';
+        Z.file(slug(g.name)+'-'+c.id+(c.owner?'-'+slug(c.owner):'')+'.jpg',await toBlob(await drawCard(g,c)))}
+      await dl.save({filename:slug(g.name)+'-cartones.zip',data:await Z.generateAsync({type:'blob'})});
+    }
+    msg.textContent='Listo.';
+  }catch(e){msg.textContent=e&&e.code==='declined'?'Descarga cancelada.':'No se pudo descargar: '+((e&&(e.message||e.code))||'error')}
+}
 
 /* ---------- exportar / importar ---------- */
 function modal(h){document.getElementById('mbox').innerHTML=h;document.getElementById('modal').style.display='grid'}
@@ -244,10 +311,11 @@ function cardsView(g){
     <input id="ncards" type="number" min="1" max="200" value="10" style="width:80px" aria-label="Cantidad">
     <button class="p" onclick="genCards()">Generar cartones</button>
     <span class="muted">o</span>
-    <input id="nowner" placeholder="Propietario (opcional)"><button onclick="addCard()">Agregar un cartón</button></div></div>`;
+    <input id="nowner" placeholder="Propietario (opcional)"><button onclick="addCard()">Agregar un cartón</button></div>
+    <div class="row" style="margin-top:10px"><button onclick="dlModal(null)" ${g.cards.length?'':'disabled'}>Descargar todos (JPG)</button><span class="muted">Fecha y hora del bingo: ${g.when?fmtWhen(g.when):'sin definir'}</span></div></div>`;
   if(!g.cards.length)return h+'<p class="muted">Esta partida no tiene cartones. Genera algunos para empezar.</p>';
   return h+'<div class="cards">'+g.cards.map(c=>`<div class="card"><div class="top"><b>${c.id}</b>
-    <button class="d" onclick="delCard('${c.id}')" aria-label="Eliminar cartón ${c.id}">Eliminar</button></div>
+    <span class="row" style="gap:4px"><button onclick="dlModal('${c.id}')" aria-label="Descargar JPG del cartón ${c.id}">JPG</button><button class="d" onclick="delCard('${c.id}')" aria-label="Eliminar cartón ${c.id}">Eliminar</button></span></div>
     <input style="width:100%;margin-bottom:8px" value="${esc(c.owner)}" placeholder="Sin propietario" aria-label="Propietario del cartón ${c.id}" onchange="setOwner('${c.id}',this.value)">
     ${cardHtml(g,c,false)}</div>`).join('')+'</div>';
 }
