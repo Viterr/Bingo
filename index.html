@@ -105,7 +105,8 @@ const uid=()=>'g_'+Math.random().toString(36).slice(2,9);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const G=()=>S.games.find(g=>g.id===S.cur);
 const letter=n=>LET[Math.min(4,Math.floor((n-1)/15))];
-const WIN={line:'Línea (fila, columna o diagonal)',full:'Cartón lleno'};
+const WIN={row:'Fila',col:'Columna',diag:'Diagonal',line:'Cualquier línea',full:'Cartón lleno'};
+const winOpts=v=>Object.keys(WIN).map(k=>'<option value="'+k+'"'+(k===v?' selected':'')+'>'+WIN[k]+'</option>').join('');
 
 /* ---------- cartones ---------- */
 function pick(lo,k){const a=[];for(let i=lo;i<lo+15;i++)a.push(i);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,k)}
@@ -120,11 +121,12 @@ function newCard(g,owner){
 function isWin(g,c){
   const d=new Set(g.drawn),m=(i,j)=>c.cols[i][j]===0||d.has(c.cols[i][j]);
   if(g.win==='full')return c.cols.every((_,i)=>[0,1,2,3,4].every(j=>m(i,j)));
+  const w=g.win,R=[0,1,2,3,4];
   for(let k=0;k<5;k++){
-    if([0,1,2,3,4].every(j=>m(k,j)))return true;
-    if([0,1,2,3,4].every(i=>m(i,k)))return true;
+    if((w==='col'||w==='line')&&R.every(j=>m(k,j)))return true;
+    if((w==='row'||w==='line')&&R.every(i=>m(i,k)))return true;
   }
-  return [0,1,2,3,4].every(i=>m(i,i))||[0,1,2,3,4].every(i=>m(i,4-i));
+  return (w==='diag'||w==='line')&&(R.every(i=>m(i,i))||R.every(i=>m(i,4-i)));
 }
 function cardHtml(g,c,showMarks){
   const d=new Set(g.drawn);
@@ -143,7 +145,7 @@ function newGame(){
 function delGame(){const g=G();if(g)ask('¿Eliminar “'+g.name+'” y todos sus cartones?',()=>{S.games=S.games.filter(x=>x!==g);S.cur=S.games[0]?.id||null;save();render()},'Eliminar')}
 function selGame(id){S.cur=id;save();render()}
 function setTab(t){S.tab=t;save();render()}
-function setWin(v){const g=G();if(g&&!g.drawn.length){g.win=v;save()}}
+function setWin(v){const g=G();if(g&&!g.drawn.length&&WIN[v]){g.win=v;save();render()}}
 function setSingle(v){const g=G();if(g&&!g.drawn.length){g.single=v;save()}}
 function genCards(){const g=G(),n=Math.max(1,Math.min(200,+document.getElementById('ncards').value||1));for(let i=0;i<n;i++)newCard(g);save();render()}
 function addCard(){newCard(G(),document.getElementById('nowner').value.trim());save();render()}
@@ -273,7 +275,7 @@ function doImport(){
     list.forEach(g=>{
       if(!g||!Array.isArray(g.cards)||!Array.isArray(g.drawn))return;
       if(S.games.some(x=>x.id===g.id))g.id=uid();
-      g.name=String(g.name||'Juego importado');g.win=g.win==='full'?'full':'line';
+      g.name=String(g.name||'Juego importado');g.win=WIN[g.win]?g.win:'line';
       g.next=g.next||g.cards.length+1;g.winners=g.winners||[];
       S.games.push(g);S.cur=g.id;n++;
     });
@@ -290,7 +292,7 @@ function render(){
     `</div>${S.games.length?'':'<p class="muted">Todavía no hay partidas. Crea la primera abajo.</p>'}
     <div class="row" style="margin-top:12px">
       <input id="gname" placeholder="Juego ${S.games.length+1}" aria-label="Nombre de la partida">
-      <select id="gwin" aria-label="Condición de victoria"><option value="line">${WIN.line}</option><option value="full">${WIN.full}</option></select>
+      <select id="gwin" aria-label="Condición de victoria">${winOpts('line')}</select>
       <label class="muted"><input type="checkbox" id="gsingle" checked> Un solo ganador</label>
       <button class="p" onclick="newGame()">Crear partida</button>
       <button onclick="showImport()">Importar JSON</button>
@@ -299,9 +301,7 @@ function render(){
   if(g){
     h+=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><div><h2 style="margin:0">${esc(g.name)}</h2>
       <span class="muted">ID ${g.id} · ${g.cards.length} cartones · ${g.drawn.length} números sorteados</span></div>
-      <div class="row"><label class="muted">Gana:
-      <select onchange="setWin(this.value)" ${g.drawn.length?'disabled title="No se puede cambiar con la partida iniciada"':''}>
-      <option value="line" ${g.win==='line'?'selected':''}>${WIN.line}</option><option value="full" ${g.win==='full'?'selected':''}>${WIN.full}</option></select></label>
+      <div class="row">
       <label class="muted"><input type="checkbox" ${g.single?'checked':''} ${g.drawn.length?'disabled':''} onchange="setSingle(this.checked)"> Un solo ganador</label>
       <button onclick="showExport(false)">Exportar</button><button class="d" onclick="delGame()">Eliminar</button></div></div>
       <div class="tabs"><button class="${S.tab==='cards'?'on':''}" onclick="setTab('cards')">Cartones</button>
@@ -353,6 +353,8 @@ function playView(g){
     <div><div class="row"><button class="p" onclick="draw()" ${over(g)?'disabled':''}>${over(g)?'Partida terminada':'Sortear número'}</button>
     <button class="d" onclick="resetGame()" ${g.drawn.length?'':'disabled'}>Reiniciar sorteos</button></div>
     <p class="muted" style="margin:8px 0 0">${g.drawn.length?`Salieron ${g.drawn.length} de 75. Quedan ${75-g.drawn.length}.`:'Todavía no se sorteó ningún número.'}</p>
+    <p style="margin:6px 0 0"><label><b>Tipo de juego:</b> <select onchange="setWin(this.value)" ${g.drawn.length?'disabled':''}>${winOpts(g.win)}</select></label></p>
+    ${g.drawn.length?'<p class="muted" style="margin:0;font-size:13px">Para cambiar el tipo de juego, reinicia los sorteos.</p>':''}
     <p class="muted" style="margin:0">Condición: ${WIN[g.win]}.${g.single?' Se evita el empate y la partida termina con el primer ganador.':''}</p></div></div></div>`;
   const wins=g.winners.map(w=>g.cards.find(c=>c.id===w.card)).filter(Boolean);
   if(wins.length)h+=`<div class="banner">${wins.length===1?'Hay un cartón ganador':'Hay '+wins.length+' cartones ganadores'}: `+
